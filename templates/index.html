@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IP-Adapter Image Generation</title>
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <h1>Fusion Image Generation</h1>
+  <div class="container">
+    <!-- Left column -->
+    <div class="card">
+      <h2>Upload Images</h2>
+      <div class="upload-preview">
+        <div class="upload-box" id="uploadBox1">
+          <input type="file" id="file1" accept="image/*" hidden>
+          <span class="placeholder-text" id="placeholder1">Click to upload Image 1</span>
+          <img id="img1" style="display:none;">
+          <button type="button" class="clear-btn" data-slot="0">×</button>
+        </div>
+
+        <div class="upload-box" id="uploadBox2">
+          <input type="file" id="file2" accept="image/*" hidden>
+          <span class="placeholder-text" id="placeholder2">Click to upload Image 2</span>
+          <img id="img2" style="display:none;">
+          <button type="button" class="clear-btn" data-slot="1">×</button>
+        </div>
+      </div>
+      <p id="uploadError" class="error" style="display:none;"></p>
+
+      <h2>Parameters</h2>
+      <form id="paramForm">
+        <label>Prompt:
+          <small>The main description of the image (max 77 words)</small>
+        </label>
+        <textarea name="prompt" rows="2" required>A hybrid composition merging both references</textarea>
+        
+        <label>Negative Prompt:
+          <small>Things you want to avoid (e.g. blur, low quality)</small>
+        </label>
+        <textarea name="negative_prompt" rows="2">blur, low quality, bad anatomy</textarea>
+        
+        <label>Alpha:
+          <small>Controls the blending ratio between image 1 and 2 (between 0 and 1)</small>
+        </label>
+        <input type="number" name="alpha" step="0.1" value="{{defaults.alpha}}">
+        
+        <label>Adapter Scale:
+          <small>How strongly the image influence the generation (between 0 and 1)</small>
+        </label>
+        <input type="number" name="adapter_scale" step="0.1" value="{{defaults.adapter_scale}}">
+        
+        <label>Steps:
+          <small>Number of denoising steps (higher = slower, usually better)</small>
+        </label>
+        <input type="number" name="inference_steps" step="1" value="{{defaults.inference_steps}}">
+        
+        <label>Guidance Scale:
+          <small>How much the model follows the text prompt (higher = stricter)</small>
+        </label>
+        <input type="number" name="guidance_scale" step="0.5" value="{{defaults.guidance_scale}}">
+      </form>
+      <p id="paramError" class="error" style="display:none;"></p>
+
+      <button id="generateBtn">Generate</button>
+    </div>
+
+    <!-- Right column -->
+    <div class="card">
+      <h2>Result</h2>
+        <div class="upload-box result-box">
+          <div id="loadingMsg">Loading... Please wait</div>
+          <img id="resultImg" style="display:none;">
+          <span id="resultPlaceholder">Generated image will appear here</span>
+        </div>
+      <button id="downloadBtn" disabled>Download</button>
+    </div>
+  </div>
+
+  <script src="static/script.js"></script>
+</body>
+</html>
