@@ -1,4 +1,5 @@
 import os
+from PIL import Image
 import torch
 from diffusers import StableDiffusionPipeline
 from transformers import CLIPVisionModelWithProjection
@@ -10,110 +11,121 @@ class ImageModel:
                 negative_prompt: str = "blur, low quality, bad anatomy", 
                 alpha: float = 0.5, 
                 adapter_scale: float = 0.8, 
-                guidance_scale: float = 2, 
-                inference_steps: int = 20):
+                guidance_scale: float = 5, 
+                inference_steps: int = 20,
+                device: str = "cuda"):
         self.prompt = prompt
         self.negative_prompt = negative_prompt
         self.alpha = alpha
         self.adapter_scale = adapter_scale
         self.guidance_scale = guidance_scale
         self.inference_steps = inference_steps
-        self.uploaded_images = []
+        self.uploaded_images = [None, None]
         self.result_image_path = None
-
-    def set_parameters(self, prompt: str, negative_prompt: str, alpha: float, adapter_scale: float, guidance_scale: float, inference_steps: int):
-        """Save model parameters (prompt, alpha, scale, etc.)"""
-        self.prompt = prompt
-        self.negative_prompt = negative_prompt
-        self.alpha = alpha
-        self.adapter_scale = adapter_scale
-        self.guidance_scale = guidance_scale
-        self.inference_steps = inference_steps
-    
-    def set_up_model(self):
-        device = "cuda"
+        self.device = device
 
         # Load the image encoder separately.
-        image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(
             "h94/IP-Adapter",
             subfolder="models/image_encoder",
             torch_dtype=torch.float16,
-        ).to(device)
+        ).to(self.device)
 
         # Load the base diffusion model and pass the image encoder.
-        pipe = StableDiffusionPipeline.from_pretrained(
+        self.pipeline = StableDiffusionPipeline.from_pretrained(
             "runwayml/stable-diffusion-v1-5",
             torch_dtype=torch.float16,
-            image_encoder=image_encoder,
-        ).to(device)
+            image_encoder=self.image_encoder,
+        ).to(self.device)
 
         # Load the IP-Adapter weights.
-        pipe.load_ip_adapter(
+        self.pipeline.load_ip_adapter(
             "h94/IP-Adapter",
             subfolder="models",
             weight_name="ip-adapter-plus_sd15.bin"
         )
-        return pipe
-    
-    def upload_images(self, files, upload_dir="uploads"):
-        """
-        Save multiple uploaded images using diffusers.utils.load_image.
-        Returns list of saved paths.
-        """
-        os.makedirs(upload_dir, exist_ok=True)
-        self.uploaded_images = []  # reset
 
+    def set_parameters(self, prompt: str, negative_prompt: str, alpha: float, adapter_scale: float, guidance_scale: float, inference_steps: int):
+        """Save model parameters"""
+        self.prompt = prompt
+        self.negative_prompt = negative_prompt
+        self.alpha = alpha
+        self.adapter_scale = adapter_scale
+        self.guidance_scale = guidance_scale
+        self.inference_steps = inference_steps
+    
+    def upload_images(self, files, slot: int, upload_dir: str="static/uploads") -> list[str]:
+        """Upload images, save them and return uploaded images path"""
+        if not files:
+            raise ValueError("No image provided")
+        if slot not in (0, 1):
+            raise ValueError("Slot must be 0 or 1")
+    
+        os.makedirs(upload_dir, exist_ok=True)
         saved_paths = []
+
         for file in files:
-            # Flask `FileStorage` -> read bytes
-            image = load_image(file)
+            img = Image.open(file.stream).convert("RGB")
             path = os.path.join(upload_dir, file.filename)
-            image.save(path)  # save with PIL's save()
-            self.uploaded_images.append(path)
+            img.save(path)
+            self.uploaded_images[slot] = path
             saved_paths.append(path)
 
         return saved_paths
 
-    def generate_result(self, pipeline, device, output_dir="static/results"):
+    def generate_result(self, output_dir: str="static/results") -> str:
         """
-        Dummy generation: copy uploaded image & pretend it's processed.
-        Replace with your actual ML pipeline.
-        """
-        if not self.uploaded_image_path:
-            raise ValueError("No uploaded image to process.")
-        
+        Generate result image and return result image path
+        """      
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, "result.png")
 
-        imgA = self.uploaded_images[0]
-        imgB = self.uploaded_images[1]
+        filled = [img for img in self.uploaded_images if img is not None]
 
-        # Prepare embeddings using IP-Adapter
-        embA = pipeline.prepare_ip_adapter_image_embeds(
-            ip_adapter_image=imgA,
-            ip_adapter_image_embeds=None,
-            device=pipeline,
-            num_images_per_prompt=1,
-            do_classifier_free_guidance=True
-        )
-        embB = pipeline.prepare_ip_adapter_image_embeds(
-            ip_adapter_image=imgB,
-            ip_adapter_image_embeds=None,
-            device=device,
-            num_images_per_prompt=1,
-            do_classifier_free_guidance=True
-        )
+        if len(filled) == 2:
+            img1 = load_image(filled[0])
+            img2 = load_image(filled[1])
 
-        # Weighted fusion
-        combined_emb = [self.alpha * a + (1 - self.alpha) * b for a, b in zip(embA, embB)] 
+            # Prepare embeddings using IP-Adapter
+            embA = self.pipeline.prepare_ip_adapter_image_embeds(
+                ip_adapter_image=img1,
+                ip_adapter_image_embeds=None,
+                device=self.device,
+                num_images_per_prompt=1,
+                do_classifier_free_guidance=True
+            )
+            embB = self.pipeline.prepare_ip_adapter_image_embeds(
+                ip_adapter_image=img2,
+                ip_adapter_image_embeds=None,
+                device=self.device,
+                num_images_per_prompt=1,
+                do_classifier_free_guidance=True
+            )
+            self.pipeline.set_ip_adapter_scale(self.adapter_scale)
 
-        pipeline.set_ip_adapter_scale(self.adapter_scale)
+            # Weighted fusion
+            image_embed = [self.alpha * a + (1 - self.alpha) * b for a, b in zip(embA, embB)]
+        
+        elif len(filled) == 1:
+            img1 = load_image(filled[0])
+            image_embed = self.pipeline.prepare_ip_adapter_image_embeds(
+                ip_adapter_image=img1,
+                ip_adapter_image_embeds=None,
+                device=self.device,
+                num_images_per_prompt=1,
+                do_classifier_free_guidance=True
+            )
+            self.pipeline.set_ip_adapter_scale(self.adapter_scale)
+        else: 
+            # image_embed = None
+            # self.pipeline.set_ip_adapter_scale(0.0)
+            raise ValueError("No image provided. Please upload images.")
 
         # Generate image
-        out = pipeline(
+        out = self.pipeline(
             prompt=self.prompt,
             negative_prompt=self.negative_prompt,
-            ip_adapter_image_embeds=combined_emb,
+            ip_adapter_image_embeds=image_embed,
             num_inference_steps=self.inference_steps,
             guidance_scale=self.guidance_scale,
         ).images[0]
@@ -123,8 +135,8 @@ class ImageModel:
 
         return output_path
 
-    def get_result(self):
-        """Return path of generated result"""
+    def get_result(self) -> str:
+        """Return path of generated result image"""
         if not self.result_image_path:
-            raise ValueError("No result generated yet.")
+            raise FileNotFoundError("Result image not found.")
         return self.result_image_path
