@@ -49,7 +49,7 @@ async function uploadSingleFile(file, index) {
   imgElem.src = "/" + uploadedPath + "?t=" + new Date().getTime();
   imgElem.style.display = "block";
   placeholder.style.display = "none";
-  clearBtn.style.display = "block";
+  clearBtn.style.display = "block";  // show clear button after upload
 
   document.getElementById(`file${index}`).value = "";
 }
@@ -68,7 +68,7 @@ document.querySelectorAll(".clear-btn").forEach(btn => {
     imgElem.src = "";
     placeholder.style.display = "block";
     fileInput.value = "";
-    clearBtn.style.display = "none"; // 🔥 hide clear button again
+    clearBtn.style.display = "none";  // hide clear button again
 
     let formData = new FormData();
     formData.append("slot", slot);
@@ -78,6 +78,10 @@ document.querySelectorAll(".clear-btn").forEach(btn => {
 
 // Generate (parameters + generate in one step)
 document.getElementById("generateBtn").onclick = async () => {
+  const generateBtn = document.getElementById("generateBtn");
+
+  generateBtn.disabled = true;  // disable button while generating
+
   document.getElementById("loadingMsg").style.display = "block";
   document.getElementById("resultImg").style.display = "none";
   document.getElementById("paramError").style.display = "none";
@@ -93,11 +97,12 @@ document.getElementById("generateBtn").onclick = async () => {
   let data = await res.json();
 
   document.getElementById("loadingMsg").style.display = "none";
+  generateBtn.disabled = false;  // re-enable after completion
 
   if (!res.ok || data.error) {
     document.getElementById("paramError").innerText = Array.isArray(data.error)  // check if backend sent an array of errors
-      ? data.error.join(", ")                                                  // if yes → join them into a single string
-      : data.error || "Generation failed.";                                    // if no → use the string error, or fallback to "Upload failed."
+      ? data.error.join(", ")                                                    // if yes → join them into a single string
+      : data.error || "Generation failed.";                                      // if no → use the string error, or fallback to "Upload failed."
     document.getElementById("paramError").style.display = "block";
     return;
   }
@@ -115,8 +120,7 @@ document.getElementById("generateBtn").onclick = async () => {
 // Download
 document.getElementById("downloadBtn").onclick = () => {
   if (lastResultPath) {
-    // download the specific file generated
-    const link = document.createElement("a");
+    const link = document.createElement("a");  // download the specific file generated
     link.href = "/" + lastResultPath;
     link.download = "result.png";
     document.body.appendChild(link);

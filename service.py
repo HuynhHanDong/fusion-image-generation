@@ -1,6 +1,8 @@
 from model import ImageModel
+import torch
 
-model = ImageModel()
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = ImageModel(device=device)
 
 def upload_image(files, slot: int) -> str:
     uploaded_path = model.upload_image(files, slot, upload_dir="static/uploads")

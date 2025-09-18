@@ -12,7 +12,7 @@ class ImageModel:
                 alpha: float = 0.5, 
                 adapter_scale: float = 0.8, 
                 guidance_scale: float = 5, 
-                inference_steps: int = 20,
+                inference_steps: int = 25,
                 device: str = "cuda"):
         self.prompt = prompt
         self.negative_prompt = negative_prompt
@@ -55,7 +55,15 @@ class ImageModel:
         self.inference_steps = inference_steps
     
     def upload_image(self, file, slot: int, upload_dir: str="static/uploads") -> str:
-        """Upload image, save and return uploaded image path"""
+        """
+        Upload and save image into slot, return uploaded image path
+        
+        Parameter:
+        ---
+        - file: image file (.png, .jpg, .webp, etc.)
+        - slot: the slot of the image file (0 or 1)
+        - upload_dir: upload directory, default: "static/uploads"
+        """
         if not file:
             raise ValueError("No image provided")
         if slot not in (0, 1):
@@ -71,9 +79,7 @@ class ImageModel:
         return uploaded_path
 
     def generate_result(self, output_dir: str="static/results") -> str:
-        """
-        Generate result image and return result image path
-        """      
+        """Generate result image and return result image path"""      
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, "result.png")
 
