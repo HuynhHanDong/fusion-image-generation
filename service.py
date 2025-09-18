@@ -2,19 +2,16 @@ from model import ImageModel
 
 model = ImageModel()
 
-def handle_upload(files, slot: int):
-    if not files:
-        return ValueError("No image uploaded.")
-    if slot not in (0, 1):
-        raise ValueError("Invalid slot")
-    return model.upload_images(files, slot, upload_dir="static/uploads")
+def upload_image(files, slot: int) -> str:
+    uploaded_path = model.upload_image(files, slot, upload_dir="static/uploads")
+    return uploaded_path
 
-def clear_slot(slot: int):
+def clear_slot(slot: int) -> None:
     if slot not in (0, 1):
         raise ValueError("Invalid slot")
     model.uploaded_images[slot] = None
 
-def get_parameter():
+def get_parameter() -> dict[str, any]:
     return {
         "prompt": model.prompt,
         "negative_prompt": model.negative_prompt,
@@ -24,7 +21,7 @@ def get_parameter():
         "inference_steps": model.inference_steps
     }
 
-def generate_and_show(dto):
+def generate_and_show(dto) -> str:
     # Save params
     model.set_parameters(
         dto.prompt,
@@ -39,5 +36,6 @@ def generate_and_show(dto):
     result_path = model.generate_result(output_dir="static/results")
     return result_path
 
-def get_result():
-    return model.get_result()
+def get_result() -> str:
+    result_path = model.get_result()
+    return result_path

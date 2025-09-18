@@ -7,16 +7,19 @@ app = Flask(__name__, template_folder="templates")
 
 @app.route("/", methods=["GET"])
 def get_parameter():
-    defaults = service.get_parameter()
-    return render_template("index.html", defaults=defaults)
+    try:
+        defaults = service.get_parameter()
+        return render_template("index.html", defaults=defaults)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    files = request.files.getlist("images")
+    file = request.files.get("images")
     slot = request.form.get("slot", type=int)
     try:
-        paths = service.handle_upload(files, slot)
-        return jsonify({"uploaded_paths": paths}), 200
+        uploaded_path = service.upload_image(file, slot)
+        return jsonify({"uploaded_path": uploaded_path}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as ex:

@@ -41,7 +41,7 @@ async function uploadSingleFile(file, index) {
 
   document.getElementById("uploadError").style.display = "none";
 
-  let uploadedPath = data.uploaded_paths[0];
+  let uploadedPath = data.uploaded_path;
   let imgElem = document.getElementById(`img${index}`);
   let placeholder = document.getElementById(`placeholder${index}`);
   let clearBtn = document.querySelector(`#uploadBox${index} .clear-btn`);

@@ -92,7 +92,7 @@ button:hover:enabled {
   border: 2px dashed #475569;
   border-radius: 12px;
   display: flex;
-  flex-direction: column; /* remove */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -105,7 +105,6 @@ button:hover:enabled {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block; /* none */
 }
 
 .upload-box:hover .clear-btn {
@@ -115,7 +114,7 @@ button:hover:enabled {
 .placeholder-text {
   color: #93c5fd;
   font-size: 14px;
-  pointer-events: none; /* make sure clicks go through to the box */
+  pointer-events: none;
 }
 
 .clear-btn {

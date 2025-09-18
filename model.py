@@ -54,24 +54,21 @@ class ImageModel:
         self.guidance_scale = guidance_scale
         self.inference_steps = inference_steps
     
-    def upload_images(self, files, slot: int, upload_dir: str="static/uploads") -> list[str]:
-        """Upload images, save them and return uploaded images path"""
-        if not files:
+    def upload_image(self, file, slot: int, upload_dir: str="static/uploads") -> str:
+        """Upload image, save and return uploaded image path"""
+        if not file:
             raise ValueError("No image provided")
         if slot not in (0, 1):
             raise ValueError("Slot must be 0 or 1")
     
         os.makedirs(upload_dir, exist_ok=True)
-        saved_paths = []
 
-        for file in files:
-            img = Image.open(file.stream).convert("RGB")
-            path = os.path.join(upload_dir, file.filename)
-            img.save(path)
-            self.uploaded_images[slot] = path
-            saved_paths.append(path)
+        img = Image.open(file.stream).convert("RGB")
+        uploaded_path = os.path.join(upload_dir, file.filename)
+        img.save(uploaded_path)
+        self.uploaded_images[slot] = uploaded_path
 
-        return saved_paths
+        return uploaded_path
 
     def generate_result(self, output_dir: str="static/results") -> str:
         """
@@ -117,8 +114,6 @@ class ImageModel:
             )
             self.pipeline.set_ip_adapter_scale(self.adapter_scale)
         else: 
-            # image_embed = None
-            # self.pipeline.set_ip_adapter_scale(0.0)
             raise ValueError("No image provided. Please upload images.")
 
         # Generate image
